@@ -1,0 +1,48 @@
+CREATE TABLE SchoolRecords (
+    StudentID int,
+    FullName varchar(50),
+    DegreeProgram varchar(50),
+    City varchar(50),
+    Gender varchar(10),
+    GPA decimal(3,2),
+    EnrollmentStatus varchar(30)
+);
+
+INSERT INTO SchoolRecords VALUES
+(1, 'Mateo Reyes', 'Information Technology', 'Manila', 'Male', 3.89, 'Pending Payment'),
+(2, 'William Go', 'Accountancy', 'Quezon City', 'Male', 3.78, 'Enrolled'),
+(3, 'Leonardo Dy', 'Accountancy', 'Makati', 'Male', 3.63, 'Pending Payment'),
+(4, 'Jillian Connor', 'Business Admin', 'Las Pinas', 'Female', 3.99, 'Pending Payment'),
+(5, 'Elaine Sy', 'Information Technology', 'Manila', 'Female', 3.13, 'Enrolled'),
+(6, 'Craig Watson', 'Business Admin', 'Las Pinas', 'Male', 3.73, 'Enrolled'),
+(7, 'Brent Fernandez', 'Business Admin', 'Makati', 'Male', 2.15, 'Enrolled'),
+(8, 'Helena Ward', 'Accountancy', 'Quezon City', 'Female', 3.39, 'Enrolled'),
+(9, 'Anthony King', 'Information Technology', 'Las Pinas', 'Male', 3.98, 'Enrolled');
+
+
+SELECT MAX(GPA)
+FROM SchoolRecords;
+
+SELECT City, COUNT(*)
+FROM SchoolRecords
+GROUP BY City;
+
+SELECT DegreeProgram, COUNT(*)
+FROM SchoolRecords
+GROUP BY DegreeProgram;
+
+SELECT Gender, COUNT(*)
+FROM SchoolRecords
+GROUP BY Gender;
+
+SELECT ROUND(AVG(GPA), 2)
+FROM SchoolRecords
+WHERE DegreeProgram = 'Accountancy';
+
+SELECT COUNT(*)
+FROM SchoolRecords
+WHERE DegreeProgram = 'Information Technology';
+
+SELECT COUNT(*)
+FROM SchoolRecords
+WHERE EnrollmentStatus = 'Enrolled';
