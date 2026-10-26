@@ -1,0 +1,223 @@
+-- ============================================
+-- LABORATORY 3B INVESTIGATION - COMPLETE SQL
+-- SQL SERVER (SSMS)
+-- ============================================
+
+-- 1. CREATE DATABASE
+IF DB_ID('LaboratoryDB') IS NULL
+    CREATE DATABASE LaboratoryDB;
+GO
+
+USE LaboratoryDB;
+GO
+
+-- 2. RESET TABLES
+-- WARNING: This deletes existing data in these four tables.
+DROP TABLE IF EXISTS WitnessStatements;
+DROP TABLE IF EXISTS Evidence;
+DROP TABLE IF EXISTS AccessLogs;
+DROP TABLE IF EXISTS Persons;
+GO
+
+-- 3. CREATE PERSONS TABLE
+CREATE TABLE Persons (
+    PersonID INT PRIMARY KEY,
+    FullName VARCHAR(100),
+    RoleName VARCHAR(100)
+);
+
+-- 4. CREATE ACCESS LOGS TABLE
+CREATE TABLE AccessLogs (
+    LogID INT PRIMARY KEY,
+    PersonID INT,
+    EventTime TIME,
+    Location VARCHAR(100),
+    EventType VARCHAR(50),
+    FOREIGN KEY (PersonID) REFERENCES Persons(PersonID)
+);
+
+-- 5. CREATE EVIDENCE TABLE
+CREATE TABLE Evidence (
+    EvidenceID INT PRIMARY KEY,
+    PersonID INT NULL,
+    EvidenceTime TIME,
+    EvidenceType VARCHAR(100),
+    Description VARCHAR(255),
+    FOREIGN KEY (PersonID) REFERENCES Persons(PersonID)
+);
+
+-- 6. CREATE WITNESS STATEMENTS TABLE
+CREATE TABLE WitnessStatements (
+    StatementID INT PRIMARY KEY,
+    WitnessID INT,
+    MentionedPersonID INT,
+    StatementTime TIME,
+    StatementText VARCHAR(500),
+    FOREIGN KEY (WitnessID) REFERENCES Persons(PersonID),
+    FOREIGN KEY (MentionedPersonID) REFERENCES Persons(PersonID)
+);
+GO
+
+-- ============================================
+-- 7. INSERT PERSONS DATA
+-- ============================================
+
+INSERT INTO Persons (PersonID, FullName, RoleName)
+VALUES
+(101, 'Adrian Cole', 'Researcher'),
+(102, 'Bianca Reyes', 'Lab Assistant'),
+(103, 'Caleb Morgan', 'Security Officer'),
+(104, 'Dana Brooks', 'IT Technician'),
+(105, 'Ethan Park', 'Researcher'),
+(106, 'Fiona Santos', 'Laboratory Supervisor');
+
+-- ============================================
+-- 8. INSERT ACCESS LOGS DATA
+-- ============================================
+
+INSERT INTO AccessLogs
+    (LogID, PersonID, EventTime, Location, EventType)
+VALUES
+(201, 101, '20:42', 'Research Building', 'Entry'),
+(202, 102, '20:51', 'Research Building', 'Entry'),
+(203, 103, '21:02', 'Security Office', 'Entry'),
+(204, 104, '21:05', 'Research Building', 'Entry'),
+(205, 105, '21:08', 'Research Building', 'Entry'),
+(206, 106, '21:10', 'Research Building', 'Entry'),
+(207, 101, '21:12', 'Laboratory 3B', 'Door Access Granted'),
+(208, 102, '21:14', 'Laboratory 3B', 'Door Access Granted'),
+(209, 104, '21:16', 'Laboratory 3B', 'Door Access Denied'),
+(210, 105, '21:18', 'Laboratory 3B', 'Door Access Granted'),
+(211, 106, '21:21', 'Laboratory 3B', 'Door Access Granted'),
+(212, 101, '21:29', 'Research Building', 'Exit'),
+(213, 102, '21:31', 'Research Building', 'Exit'),
+(214, 104, '21:35', 'Research Building', 'Exit'),
+(215, 105, '21:37', 'Research Building', 'Exit'),
+(216, 106, '21:40', 'Research Building', 'Exit');
+
+-- ============================================
+-- 9. INSERT EVIDENCE DATA
+-- ============================================
+
+INSERT INTO Evidence
+    (EvidenceID, PersonID, EvidenceTime, EvidenceType, Description)
+VALUES
+(301, 101, '21:17', 'CCTV Detection',
+ 'Person observed near the laboratory storage cabinet'),
+(302, 102, '21:19', 'CCTV Detection',
+ 'Person carrying a small rectangular object'),
+(303, NULL, '21:20', 'Physical Evidence',
+ 'Empty research-drive case found beside the cabinet'),
+(304, 104, '21:23', 'CCTV Detection',
+ 'Person seen near the service corridor'),
+(305, 105, '21:24', 'CCTV Detection',
+ 'Person observed leaving the laboratory area'),
+(306, 106, '21:26', 'Physical Evidence',
+ 'Cabinet found unlocked during the initial inspection');
+
+-- ============================================
+-- 10. INSERT WITNESS STATEMENTS DATA
+-- ============================================
+
+INSERT INTO WitnessStatements
+    (StatementID, WitnessID, MentionedPersonID,
+     StatementTime, StatementText)
+VALUES
+(401, 103, 101, '21:32',
+ 'I saw Adrian near the storage cabinet shortly before the incident was reported.'),
+(402, 102, 104, '21:34',
+ 'I noticed Dana near the service corridor, but I could not see what Dana was carrying.'),
+(403, 101, 105, '21:36',
+ 'Ethan was near the laboratory area around the time the drive went missing.'),
+(404, 106, 102, '21:38',
+ 'Bianca appeared to be holding a small rectangular object when leaving the area.');
+GO
+
+-- ============================================
+-- MISSION 1: ACCESS EVENTS
+-- EXPECTED: 5 ROWS
+-- ============================================
+
+SELECT
+    LogID,
+    PersonID,
+    EventTime,
+    EventType
+FROM AccessLogs
+WHERE Location = 'Laboratory 3B'
+  AND EventTime BETWEEN '21:10:00' AND '21:25:00'
+ORDER BY EventTime ASC;
+
+-- ============================================
+-- MISSION 2: EVIDENCE REPORT
+-- EXPECTED: 6 ROWS
+-- ============================================
+
+SELECT
+    e.EvidenceID,
+    e.EvidenceTime,
+    e.EvidenceType,
+    COALESCE(p.FullName, 'Unidentified') AS FullName,
+    e.Description
+FROM Evidence e
+LEFT JOIN Persons p
+    ON e.PersonID = p.PersonID
+WHERE e.EvidenceTime BETWEEN '21:17:00' AND '21:26:00'
+ORDER BY e.EvidenceTime ASC;
+
+-- ============================================
+-- MISSION 3: WITNESS STATEMENTS
+-- EXPECTED: 4 ROWS
+-- ============================================
+
+SELECT
+    ws.StatementID,
+    p.FullName AS WitnessName,
+    ws.MentionedPersonID,
+    ws.StatementTime,
+    ws.StatementText
+FROM WitnessStatements ws
+JOIN Persons p
+    ON ws.WitnessID = p.PersonID
+ORDER BY ws.StatementTime ASC;
+
+-- ============================================
+-- MISSION 4: ACCESS AND EVIDENCE TIMELINE
+-- EXPECTED: 5 ROWS
+-- ============================================
+
+SELECT
+    p.FullName,
+    a.EventTime,
+    a.EventType,
+    e.EvidenceTime,
+    e.EvidenceType,
+    e.Description
+FROM AccessLogs a
+JOIN Persons p
+    ON a.PersonID = p.PersonID
+JOIN Evidence e
+    ON a.PersonID = e.PersonID
+WHERE a.Location = 'Laboratory 3B'
+  AND a.EventTime BETWEEN '21:10:00' AND '21:25:00'
+  AND e.EvidenceTime BETWEEN '21:17:00' AND '21:26:00'
+ORDER BY a.EventTime ASC;
+
+-- ============================================
+-- MISSION 5: CCTV DETECTION SUMMARY
+-- EXPECTED: 4 ROWS
+-- ============================================
+
+SELECT
+    p.PersonID,
+    p.FullName,
+    COUNT(e.EvidenceID) AS NumberOfCCTVDetections
+FROM Persons p
+JOIN Evidence e
+    ON p.PersonID = e.PersonID
+WHERE e.EvidenceType = 'CCTV Detection'
+  AND e.EvidenceTime BETWEEN '21:17:00' AND '21:26:00'
+GROUP BY
+    p.PersonID,
+    p.FullName
+ORDER BY p.PersonID ASC;
