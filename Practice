@@ -1,0 +1,612 @@
+-- 1. CREATE DATABASE
+IF DB_ID('LabSecurity') IS NULL
+    CREATE DATABASE LabSecurity;
+GO
+
+USE LabSecurity;
+GO
+
+-- 2. CREATE TABLES
+IF OBJECT_ID('dbo.Persons', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Persons (
+        PersonID INT IDENTITY(1,1) PRIMARY KEY,
+        FullName VARCHAR(100) NOT NULL,
+        Role VARCHAR(50) NOT NULL
+    );
+END;
+GO
+
+IF OBJECT_ID('dbo.AccessLogs', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.AccessLogs (
+        LogID INT IDENTITY(1,1) PRIMARY KEY,
+        PersonID INT,
+        LabName VARCHAR(50),
+        AccessTime DATETIME2,
+        AccessStatus VARCHAR(20),
+        FOREIGN KEY (PersonID)
+            REFERENCES dbo.Persons(PersonID)
+    );
+END;
+GO
+
+IF OBJECT_ID('dbo.Evidence', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Evidence (
+        EvidenceID INT IDENTITY(1,1) PRIMARY KEY,
+        LogID INT,
+        EvidenceType VARCHAR(100),
+        Description VARCHAR(255),
+        FOREIGN KEY (LogID)
+            REFERENCES dbo.AccessLogs(LogID)
+    );
+END;
+GO
+
+IF OBJECT_ID('dbo.Witnesses', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Witnesses (
+        WitnessID INT IDENTITY(1,1) PRIMARY KEY,
+        LogID INT,
+        WitnessName VARCHAR(100),
+        Statement VARCHAR(255),
+        FOREIGN KEY (LogID)
+            REFERENCES dbo.AccessLogs(LogID)
+    );
+END;
+GO
+
+-- 3. INSERT SAMPLE DATA
+-- Run this section only once.
+IF NOT EXISTS (SELECT 1 FROM dbo.Persons)
+BEGIN
+    INSERT INTO dbo.Persons (FullName, Role)
+    VALUES
+        ('Alex Santos', 'Student'),
+        ('Maria Cruz', 'Laboratory Assistant'),
+        ('John Reyes', 'Security Guard'),
+        ('Daniel Garcia', 'Student');
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.AccessLogs)
+BEGIN
+    INSERT INTO dbo.AccessLogs
+        (PersonID, LabName, AccessTime, AccessStatus)
+    VALUES
+        (1, 'Laboratory 3B', '2026-10-12T21:12:00', 'Allowed'),
+        (2, 'Laboratory 3B', '2026-10-12T21:17:00', 'Allowed'),
+        (4, 'Laboratory 3B', '2026-10-12T21:22:00', 'Denied'),
+        (3, 'Laboratory 2A', '2026-10-12T21:20:00', 'Allowed');
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Evidence)
+BEGIN
+    INSERT INTO dbo.Evidence (LogID, EvidenceType, Description)
+    VALUES
+        (1, 'CCTV', 'Person entered the laboratory'),
+        (3, 'Access Card', 'Access card was denied');
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Witnesses)
+BEGIN
+    INSERT INTO dbo.Witnesses (LogID, WitnessName, Statement)
+    VALUES
+        (1, 'Peter Lim', 'Saw a person enter'),
+        (3, 'Anna Flores', 'Saw the access attempt');
+END;
+GO
+
+-- 4. SELECT AND DISTINCT
+SELECT * FROM dbo.Persons;
+SELECT * FROM dbo.AccessLogs;
+SELECT * FROM dbo.Evidence;
+SELECT * FROM dbo.Witnesses;
+
+SELECT FullName, Role
+FROM dbo.Persons;
+
+SELECT DISTINCT LabName
+FROM dbo.AccessLogs;
+
+-- 5. WHERE AND COMPARISON OPERATORS
+SELECT * FROM dbo.Persons WHERE Role = 'Student';
+SELECT * FROM dbo.Persons WHERE Role <> 'Student';
+SELECT * FROM dbo.Persons WHERE PersonID > 2;
+SELECT * FROM dbo.Persons WHERE PersonID < 3;
+SELECT * FROM dbo.Persons WHERE PersonID >= 2;
+SELECT * FROM dbo.Persons WHERE PersonID <= 3;
+
+-- 6. AND, OR, NOT
+SELECT * FROM dbo.AccessLogs
+WHERE LabName = 'Laboratory 3B'
+  AND AccessStatus = 'Denied';
+
+SELECT * FROM dbo.AccessLogs
+WHERE AccessStatus = 'Denied'
+   OR AccessStatus = 'Allowed';
+
+SELECT * FROM dbo.Persons
+WHERE NOT Role = 'Student';
+
+-- 7. BETWEEN, IN, LIKE, NULL
+SELECT * FROM dbo.Persons
+WHERE PersonID BETWEEN 1 AND 3;
+
+SELECT * FROM dbo.Persons
+WHERE Role IN ('Student', 'Laboratory Assistant');
+
+SELECT * FROM dbo.Persons
+WHERE FullName LIKE 'A%';
+
+SELECT * FROM dbo.Persons
+WHERE FullName LIKE '%s';
+
+SELECT * FROM dbo.Persons
+WHERE FullName LIKE '%an%';
+
+SELECT * FROM dbo.Evidence
+WHERE Description IS NULL;
+
+SELECT * FROM dbo.Evidence
+WHERE Description IS NOT NULL;
+
+-- 8. ORDER BY AND TOP
+SELECT * FROM dbo.AccessLogs
+ORDER BY AccessTime ASC;
+
+SELECT * FROM dbo.AccessLogs
+ORDER BY AccessTime DESC;
+
+SELECT TOP 5 *
+FROM dbo.AccessLogs
+ORDER BY AccessTime DESC;
+
+-- 9. INNER JOIN
+SELECT p.FullName, a.LogID, a.LabName,
+       a.AccessTime, a.AccessStatus
+FROM dbo.Persons AS p
+INNER JOIN dbo.AccessLogs AS a
+    ON p.PersonID = a.PersonID;
+
+-- 10. LEFT JOIN
+SELECT p.FullName, a.LogID, a.LabName
+FROM dbo.Persons AS p
+LEFT JOIN dbo.AccessLogs AS a
+    ON p.PersonID = a.PersonID;
+
+-- 11. RIGHT JOIN
+SELECT p.FullName, a.LogID, a.LabName
+FROM dbo.Persons AS p
+RIGHT JOIN dbo.AccessLogs AS a
+    ON p.PersonID = a.PersonID;
+
+-- 12. FULL OUTER JOIN
+SELECT p.PersonID, p.FullName, a.LogID
+FROM dbo.Persons AS p
+FULL OUTER JOIN dbo.AccessLogs AS a
+    ON p.PersonID = a.PersonID;
+
+-- 13. CROSS JOIN
+SELECT p.FullName, a.LabName
+FROM dbo.Persons AS p
+CROSS JOIN dbo.AccessLogs AS a;
+
+-- 14. SELF JOIN
+SELECT
+    p1.FullName AS Person1,
+    p2.FullName AS Person2,
+    p1.Role
+FROM dbo.Persons AS p1
+INNER JOIN dbo.Persons AS p2
+    ON p1.Role = p2.Role
+WHERE p1.PersonID < p2.PersonID;
+
+-- 15. JOIN ALL FOUR TABLES
+SELECT
+    p.FullName,
+    p.Role,
+    a.LogID,
+    a.LabName,
+    a.AccessTime,
+    a.AccessStatus,
+    e.EvidenceType,
+    e.Description AS EvidenceDescription,
+    w.WitnessName,
+    w.Statement AS WitnessStatement
+FROM dbo.AccessLogs AS a
+LEFT JOIN dbo.Persons AS p
+    ON a.PersonID = p.PersonID
+LEFT JOIN dbo.Evidence AS e
+    ON a.LogID = e.LogID
+LEFT JOIN dbo.Witnesses AS w
+    ON a.LogID = w.LogID
+ORDER BY a.AccessTime;
+
+-- 16. AGGREGATE FUNCTIONS
+SELECT COUNT(*) AS TotalLogs
+FROM dbo.AccessLogs;
+
+SELECT COUNT(*) AS DeniedAttempts
+FROM dbo.AccessLogs
+WHERE AccessStatus = 'Denied';
+
+SELECT MIN(AccessTime) AS FirstAccess
+FROM dbo.AccessLogs;
+
+SELECT MAX(AccessTime) AS LastAccess
+FROM dbo.AccessLogs;
+
+SELECT
+    SUM(PersonID) AS SumPersonIDs,
+    AVG(CAST(PersonID AS DECIMAL(10,2))) AS AveragePersonID,
+    MIN(PersonID) AS LowestPersonID,
+    MAX(PersonID) AS HighestPersonID
+FROM dbo.Persons;
+
+-- 17. GROUP BY AND HAVING
+SELECT LabName, COUNT(*) AS TotalLogs
+FROM dbo.AccessLogs
+GROUP BY LabName;
+
+SELECT AccessStatus, COUNT(*) AS Total
+FROM dbo.AccessLogs
+GROUP BY AccessStatus;
+
+SELECT PersonID, COUNT(*) AS TotalAttempts
+FROM dbo.AccessLogs
+GROUP BY PersonID
+HAVING COUNT(*) > 1;
+
+SELECT LabName, COUNT(*) AS TotalDenied
+FROM dbo.AccessLogs
+WHERE AccessStatus = 'Denied'
+GROUP BY LabName
+HAVING COUNT(*) >= 1;
+
+-- 18. DATE AND TIME QUERIES
+SELECT *
+FROM dbo.AccessLogs
+WHERE LabName = 'Laboratory 3B'
+  AND AccessTime >= '2026-10-12T21:10:00'
+  AND AccessTime <= '2026-10-12T21:25:00'
+ORDER BY AccessTime;
+
+SELECT *
+FROM dbo.AccessLogs
+WHERE AccessTime >= '2026-10-01'
+  AND AccessTime < '2026-11-01';
+
+SELECT
+    LogID,
+    CAST(AccessTime AS DATE) AS AccessDate,
+    CAST(AccessTime AS TIME) AS AccessClockTime
+FROM dbo.AccessLogs;
+
+SELECT
+    DATEPART(HOUR, AccessTime) AS AccessHour,
+    COUNT(*) AS TotalEvents
+FROM dbo.AccessLogs
+GROUP BY DATEPART(HOUR, AccessTime)
+ORDER BY AccessHour;
+
+SELECT *
+FROM dbo.AccessLogs
+WHERE AccessTime >= DATEADD(HOUR, -24, SYSDATETIME())
+  AND AccessTime <= SYSDATETIME();
+
+-- 19. SUBQUERIES: IN, NOT IN, EXISTS, NOT EXISTS
+SELECT *
+FROM dbo.Persons
+WHERE PersonID IN (
+    SELECT PersonID
+    FROM dbo.AccessLogs
+);
+
+SELECT *
+FROM dbo.Persons
+WHERE PersonID NOT IN (
+    SELECT PersonID
+    FROM dbo.AccessLogs
+    WHERE PersonID IS NOT NULL
+);
+
+SELECT p.*
+FROM dbo.Persons AS p
+WHERE EXISTS (
+    SELECT 1
+    FROM dbo.AccessLogs AS a
+    WHERE a.PersonID = p.PersonID
+      AND a.AccessStatus = 'Denied'
+);
+
+SELECT p.*
+FROM dbo.Persons AS p
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM dbo.AccessLogs AS a
+    WHERE a.PersonID = p.PersonID
+);
+
+SELECT *
+FROM dbo.AccessLogs
+WHERE AccessTime = (
+    SELECT MAX(AccessTime)
+    FROM dbo.AccessLogs
+);
+
+-- 20. SUBQUERY WITH AVERAGE ATTEMPTS
+SELECT PersonID, COUNT(*) AS TotalAttempts
+FROM dbo.AccessLogs
+GROUP BY PersonID
+HAVING COUNT(*) > (
+    SELECT AVG(CAST(AttemptCount AS DECIMAL(10,2)))
+    FROM (
+        SELECT COUNT(*) AS AttemptCount
+        FROM dbo.AccessLogs
+        GROUP BY PersonID
+    ) AS PersonAttempts
+);
+
+-- 21. UNION AND UNION ALL
+SELECT FullName AS Name
+FROM dbo.Persons
+WHERE Role = 'Student'
+UNION
+SELECT WitnessName AS Name
+FROM dbo.Witnesses;
+
+SELECT FullName AS Name
+FROM dbo.Persons
+UNION ALL
+SELECT WitnessName AS Name
+FROM dbo.Witnesses;
+
+-- 22. CASE AND CONDITIONAL AGGREGATION
+SELECT
+    LogID,
+    LabName,
+    AccessStatus,
+    CASE
+        WHEN AccessStatus = 'Denied' THEN 'Review Required'
+        WHEN AccessStatus = 'Allowed' THEN 'Access Granted'
+        ELSE 'Unknown Status'
+    END AS AccessResult
+FROM dbo.AccessLogs;
+
+SELECT
+    COUNT(*) AS TotalEvents,
+    SUM(CASE WHEN AccessStatus = 'Denied'
+        THEN 1 ELSE 0 END) AS DeniedCount,
+    SUM(CASE WHEN AccessStatus = 'Allowed'
+        THEN 1 ELSE 0 END) AS AllowedCount
+FROM dbo.AccessLogs;
+
+-- 23. ISNULL, COALESCE, CONCAT
+SELECT
+    EvidenceID,
+    ISNULL(Description, 'No description') AS EvidenceDescription
+FROM dbo.Evidence;
+
+SELECT
+    COALESCE(Description, 'No description') AS EvidenceDescription
+FROM dbo.Evidence;
+
+SELECT CONCAT(FullName, ' - ', Role) AS PersonDetails
+FROM dbo.Persons;
+
+-- 24. COMMON TABLE EXPRESSIONS (CTEs)
+;WITH DeniedLogs AS (
+    SELECT *
+    FROM dbo.AccessLogs
+    WHERE AccessStatus = 'Denied'
+)
+SELECT * FROM DeniedLogs;
+
+;WITH LabLogs AS (
+    SELECT *
+    FROM dbo.AccessLogs
+    WHERE LabName = 'Laboratory 3B'
+)
+SELECT p.FullName, l.AccessTime, l.AccessStatus
+FROM LabLogs AS l
+INNER JOIN dbo.Persons AS p
+    ON l.PersonID = p.PersonID;
+
+-- 25. WINDOW FUNCTIONS
+SELECT
+    PersonID,
+    LogID,
+    AccessTime,
+    ROW_NUMBER() OVER (
+        PARTITION BY PersonID
+        ORDER BY AccessTime
+    ) AS EventNumber
+FROM dbo.AccessLogs;
+
+;WITH PersonCounts AS (
+    SELECT PersonID, COUNT(*) AS TotalAttempts
+    FROM dbo.AccessLogs
+    GROUP BY PersonID
+)
+SELECT
+    PersonID,
+    TotalAttempts,
+    RANK() OVER (
+        ORDER BY TotalAttempts DESC
+    ) AS AttemptRank,
+    DENSE_RANK() OVER (
+        ORDER BY TotalAttempts DESC
+    ) AS DenseRank
+FROM PersonCounts;
+
+SELECT
+    PersonID,
+    AccessTime,
+    LAG(AccessTime) OVER (
+        PARTITION BY PersonID ORDER BY AccessTime
+    ) AS PreviousAccess,
+    LEAD(AccessTime) OVER (
+        PARTITION BY PersonID ORDER BY AccessTime
+    ) AS NextAccess
+FROM dbo.AccessLogs;
+
+-- 26. CREATE AND USE VIEW
+CREATE OR ALTER VIEW dbo.AccessLogDetails
+AS
+SELECT
+    a.LogID,
+    p.FullName,
+    a.LabName,
+    a.AccessTime,
+    a.AccessStatus
+FROM dbo.AccessLogs AS a
+INNER JOIN dbo.Persons AS p
+    ON a.PersonID = p.PersonID;
+GO
+
+SELECT * FROM dbo.AccessLogDetails;
+GO
+
+-- 27. INDEXES
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = 'IX_AccessLogs_Lab_Time'
+      AND object_id = OBJECT_ID('dbo.AccessLogs')
+)
+    CREATE INDEX IX_AccessLogs_Lab_Time
+    ON dbo.AccessLogs (LabName, AccessTime);
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = 'IX_AccessLogs_Person'
+      AND object_id = OBJECT_ID('dbo.AccessLogs')
+)
+    CREATE INDEX IX_AccessLogs_Person
+    ON dbo.AccessLogs (PersonID);
+GO
+
+-- View indexes
+EXEC sp_helpindex 'dbo.AccessLogs';
+GO
+
+-- 28. DATABASE INFORMATION
+SELECT name FROM sys.databases;
+SELECT name FROM sys.tables;
+
+EXEC sp_help 'dbo.Persons';
+EXEC sp_help 'dbo.AccessLogs';
+EXEC sp_help 'dbo.Evidence';
+EXEC sp_help 'dbo.Witnesses';
+GO
+
+-- Inspect the query execution plan
+SET SHOWPLAN_TEXT ON;
+GO
+SELECT * FROM dbo.AccessLogs WHERE PersonID = 1;
+GO
+SET SHOWPLAN_TEXT OFF;
+GO
+
+-- 29. INSERT, UPDATE, DELETE EXAMPLES
+-- Uncomment and run only when intended.
+
+-- INSERT INTO dbo.Persons (FullName, Role)
+-- VALUES ('Kevin Dela Cruz', 'Student');
+
+-- UPDATE dbo.Persons
+-- SET Role = 'Laboratory Assistant'
+-- WHERE PersonID = 1;
+
+-- DELETE FROM dbo.Witnesses
+-- WHERE WitnessID = 2;
+
+-- Dangerous: deletes every witness row.
+-- DELETE FROM dbo.Witnesses;
+
+-- 30. ALTER TABLE EXAMPLES
+-- Run separately and only when needed.
+
+-- ALTER TABLE dbo.Persons
+-- ADD Email VARCHAR(100);
+
+-- ALTER TABLE dbo.Persons
+-- ALTER COLUMN FullName VARCHAR(150) NOT NULL;
+
+-- EXEC sp_rename
+-- 'dbo.Persons.FullName', 'PersonName', 'COLUMN';
+
+-- ALTER TABLE dbo.Persons DROP COLUMN Email;
+
+-- 31. CONSTRAINT EXAMPLE
+IF OBJECT_ID('dbo.ExampleTable', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ExampleTable (
+        ID INT IDENTITY(1,1) PRIMARY KEY,
+        Email VARCHAR(100) UNIQUE,
+        Name VARCHAR(100) NOT NULL,
+        Status VARCHAR(20) DEFAULT 'Active',
+        Age INT CHECK (Age >= 0)
+    );
+END;
+GO
+
+-- 32. TRANSACTION EXAMPLE
+-- Uncomment to practice.
+
+-- BEGIN TRANSACTION;
+-- UPDATE dbo.Persons
+-- SET Role = 'Student'
+-- WHERE PersonID = 1;
+-- SAVE TRANSACTION FirstChange;
+-- UPDATE dbo.Persons
+-- SET Role = 'Security Guard'
+-- WHERE PersonID = 2;
+-- ROLLBACK TRANSACTION FirstChange;
+-- COMMIT TRANSACTION;
+
+-- To cancel all uncommitted changes:
+-- BEGIN TRANSACTION;
+-- UPDATE dbo.Persons SET Role = 'Student' WHERE PersonID = 1;
+-- ROLLBACK TRANSACTION;
+
+-- 33. COMPLETE INVESTIGATION QUERY
+SELECT
+    a.LogID,
+    p.PersonID,
+    p.FullName,
+    p.Role,
+    a.LabName,
+    a.AccessTime,
+    a.AccessStatus,
+    e.EvidenceID,
+    e.EvidenceType,
+    e.Description AS EvidenceDescription,
+    w.WitnessID,
+    w.WitnessName,
+    w.Statement AS WitnessStatement
+FROM dbo.AccessLogs AS a
+LEFT JOIN dbo.Persons AS p
+    ON a.PersonID = p.PersonID
+LEFT JOIN dbo.Evidence AS e
+    ON a.LogID = e.LogID
+LEFT JOIN dbo.Witnesses AS w
+    ON a.LogID = w.LogID
+WHERE a.LabName = 'Laboratory 3B'
+  AND a.AccessTime >= '2026-10-12T21:10:00'
+  AND a.AccessTime <= '2026-10-12T21:25:00'
+ORDER BY a.AccessTime ASC;
+
+-- 34. DANGEROUS COMMANDS: KEEP COMMENTED OUT
+-- DROP VIEW dbo.AccessLogDetails;
+-- DROP TABLE dbo.Evidence;
+-- DROP DATABASE LabSecurity;
+
+
+
